@@ -60,12 +60,12 @@ def print_delay(delay):
         sys.stdout.flush()
         time.sleep(1)
         delay -= 1
-    print_("\nWaiting Done, Starting....\n")
+    print_("Waiting Done, Starting....\n")
        
 def main():
     selector_task = input("auto clear task y/n : ").strip().lower()
     selector_game = input("auto play game y/n : ").strip().lower()
-    selector_max = input("auto max score y=(600), n=random(300-500) y/n : ").strip().lower()
+    selector_max = input("basic score wonton *80-100 = y, basic score wonton *50-80 = n : ").strip().lower()
     while True:
         delete_all()
         start_time = time.time()
@@ -75,6 +75,8 @@ def main():
         sum = len(queries)
         wonton = Wonton()
         tickets = []
+        ton = 0.0
+        wton = 0
         for index, query in enumerate(queries, start=1):
             users = parse_query(query).get('user')
             id = users.get('id')
@@ -82,18 +84,33 @@ def main():
             print_('generate token...')
             data_login = wonton.login(query)
             ticketCount = data_login.get('ticketCount')
-            tickets.append(ticketCount)
             token = gets(id)
             if token is None:
                 token = data_login.get('tokens').get('accessToken')
                 save(id, token)
-            data_user = wonton.get_user(token)
+            data_user = data_login.get('user',{})
+            tokenBalance = data_user.get('tokenBalance','0')
+            withdrawableBalance = data_user.get('withdrawableBalance','0')
             if data_user is not None:
-                print_(f"WTON Balance: {(data_user['tokenBalance'])}")
-                print_(f"TON Balance: {(data_user['withdrawableBalance'])}")
+                print_(f"WTON Balance: {tokenBalance}")
+                print_(f"TON Balance: {withdrawableBalance}")
                 print_(f"Ticket Count: {(data_login['ticketCount'])}")
-
+                wton += int(tokenBalance)
+                ton += float(withdrawableBalance)
                 wonton.checkin(token)
+            
+            hasClaimedOkx = data_user.get('hasClaimedOkx',False)
+            hasClaimedBinance = data_user.get('hasClaimedBinance',False)
+            hasClaimedHackerLeague = data_user.get('hasClaimedHackerLeague',False)
+
+            # if hasClaimedOkx == False:
+            #     wonton.clear_gift_task(token, "OKX_WALLET")
+            
+            if hasClaimedBinance == False:
+                wonton.clear_gift_task(token, "BINANCE_SIGN_UP")
+            
+            if hasClaimedHackerLeague == False:
+                wonton.clear_gift_task(token, "HACKER_LEAGUE")
 
             data_farming = wonton.check_farm_status(token)
             if data_farming is not None:
@@ -105,6 +122,15 @@ def main():
                     wonton.claim_farming(token)
                     wonton.start_farming(token)
 
+            data_list = wonton.get_list_wonton(token)
+            if data_list is not None:
+                stats = data_list.get('data').get('stats')[2]
+                ton += float(data_list.get('ton'))
+                wton += int(data_list.get('wton'))
+
+            tickets.append({'ticket': ticketCount, 'stats':int(stats)})
+        
+
         for index, query in enumerate(queries):
             mid_time = time.time()
             remaining_time = delay - (mid_time-start_time)
@@ -113,33 +139,38 @@ def main():
             users = parse_query(query).get('user')
             id = users.get('id')
             print_(f"SxG======= Account {index+1}/{sum} [ {users.get('username')} ] ========SxG")
-            ticket = tickets[index]
+            data = tickets[index]
             token = gets(id)
-            if token is None:
-                print_('generate token...')
-                data_login = wonton.login(query)
-                token = data_login.get('tokens').get('accessToken')
-                save(id, token)
+
+            print_('generate token...')
+            data_login = wonton.login(query)
+            token = data_login.get('tokens').get('accessToken')
+            save(id, token)
+            
             if selector_task == 'y':
                 print_('Staring Task...')
                 wonton.get_task(token)
             if selector_game == 'y':
                 print_('Staring Play Game...')
+                ticket = data.get('ticket',0)
                 if ticket == 0:
                     print_('No have Ticket To Play')
                 else:
                     print_(f'Remaining ticket : {ticket}')
+                    stats = data.get('stats')
                     while ticket > 0:
+                        
                         game_data = wonton.start_game(token)
                         if game_data:
                             hasBonus = game_data.get('bonusRound',False)
                             print_(f'Bonus Round: {hasBonus}')
-                            time.sleep(random.randint(15,20))
-
-                            points = random.randint(400, 600)
+                            time.sleep(random.randint(20,25))
+                            stats = data.get('stats')
+                            rand = random.randint(60, 100)
+                            points = rand*stats
                             if selector_max =='y':
-                                points = 600
-
+                                rand = random.randint(113,151)
+                                points = rand*stats
                             finish_data = wonton.finish_game(token, points, hasBonus)
                             if finish_data is not None:
                                 ticket -= 1
@@ -149,8 +180,10 @@ def main():
                                     items = finish_data.get('items',[])
                                     for item in items:
                                         print_(f"Name: {item.get('name')} | Farming Power : {item.get('farmingPower')} | Token Value : {item.get('tokenValue')} WTON | {item.get('value')} TON")
-
-
+        print()
+        print_("============================================")
+        print_(f"Total Balance | Wton : {wton} | TON : {ton}")
+        print_("============================================")
         end_time = time.time()
         total = delay - (end_time-start_time)
         if total > 0:

@@ -1,4 +1,5 @@
 import random
+import string
 import requests
 import time
 import json
@@ -7,6 +8,9 @@ from datetime import datetime, timedelta
 
 
 
+def generate_random_string(length):
+    characters = string.ascii_letters + string.digits + string.punctuation
+    return ''.join(random.choice(characters) for _ in range(length))
 
 class Wonton:
 
@@ -14,11 +18,11 @@ class Wonton:
         self.headers = {
             'authority': 'wonton.food',
             'accept': '*/*',
-            'accept-language': 'vi-VN,vi;q=0.9,fr-FR;q=0.8,fr;q=0.7,en-US;q=0.6,en;q=0.5',
+            'accept-language': 'en-US,en;q=0.9',
             'content-type': 'application/json',
             'origin': 'https://www.wonton.restaurant',
             'referer': 'https://www.wonton.restaurant/',
-            'sec-ch-ua': '"Not/A)Brand";v="99", "Google Chrome";v="115", "Chromium";v="115"',
+            'sec-ch-ua': 'Microsoft Edge";v="129", "Not=A?Brand";v="8", "Chromium";v="129", "Microsoft Edge WebView2";v="129"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"Windows"',
             'sec-fetch-dest': 'empty',
@@ -49,7 +53,6 @@ class Wonton:
                     self.print_(f"Status Code: {response.status_code} | {response.text}")
                     return None
                 retry_count += 1
-                return None
             elif response.status_code >= 400:
                 self.print_(f"Status Code: {response.status_code} | {response.text}")
                 return None
@@ -101,7 +104,7 @@ class Wonton:
                 if remaining <= 0:
                     return data
                 else:
-                    self.print_(f'Remaining Time : {round(remaining)} Seconds')
+                    self.print_(f'Remaining Farming Time : {round(remaining)} Seconds')
                     return 'wait'
                     
             else:
@@ -182,11 +185,16 @@ class Wonton:
 
                 for task in tasks:
                     name = task.get('name')
+                    if name in ['Join FunMe Channel', 'Join MasterChef Channel']:
+                        self.print_(f"Task {name} Skip!!")
+                        continue
+
                     rewardAmount = task.get('rewardAmount')
                     alls = f"Task : {name} | Reward : {rewardAmount}"
                     if task['status'] == 0:
                         payload = {'taskId': task['id']}
                         self.print_(f"{alls} Started")
+                        time.sleep(1)
                         self.verify_task(token, payload, alls)
                     else:
                         self.print_(f"{alls} Done")
@@ -205,6 +213,7 @@ class Wonton:
         if response is not None:
             if response.status_code == 200:
                 self.print_(f"Verification {alls}")
+                time.sleep(1)
                 self.claim_task(token, payload, alls)
             else:
                 self.print_(f"Failed Verification {alls}")
@@ -264,5 +273,81 @@ class Wonton:
             self.print_(f'Get user error : {error}')
             return None
 
+    def clear_gift_task(self, token, types):
+        url = f'https://wonton.food/api/v1/user/claim-task-gift?type={types}'
+        headers = {**self.headers, 'Authorization': f'bearer {token}'}
+
+        try:
+            response = self.make_request('get',url, headers)
+            if response is not None:
+                jsons = response.json()
+                self.print_(f"Claim gift Task {types} Done")
+                items = jsons.get('items')
+                for item in items:
+                    self.print_(f"Name: {item.get('name')} | Farming Power : {item.get('farmingPower')} | Token Value : {item.get('tokenValue')} WTON | {item.get('value')} TON")
+                return jsons
+
+        except Exception as error:
+            self.print_(f'Get user error : {error}')
+            return None
+    
+    def get_list_wonton(self, token):
+        url = 'https://wonton.food/api/v1/shop/list'
+        headers = {**self.headers, 'Authorization': f'bearer {token}'}
+        try:
+            response = self.make_request('get',url, headers)
+            if response is not None:
+                jsons = response.json()
+                shopItems = jsons.get('shopItems',[])
+                in_used = 0
+                list_wonton = []
+                data_item = {}
+                ton = 0.0
+                wton = 0
+                for item in shopItems:
+                    inventory = item.get('inventory')
+                    inUse = item.get('inUse')
+                    if inUse:
+                        in_used = int(item.get('farmingPower'))
+                        data_item = item
+                    if inventory > 0 :
+                        farmingPower = int(item.get('farmingPower',0))
+                        value = float(item.get('value',0))
+                        wton += farmingPower*inventory
+                        ton += value*inventory
+                        list_wonton.append(item)
+                
+                sorted_data = sorted(list_wonton, key=lambda x: int(x['farmingPower']), reverse=True)
+                for data in sorted_data:
+                    power = int(data.get('farmingPower'))
+                    if power > in_used:
+                        self.set_wonton(token, data)
+                        data_item = data
+                        break
+                return {'ton': ton, 'wton':wton, 'data':data_item}
+
+        except Exception as error:
+            self.print_(f'Get user error : {error}')
+            return None
+    
+    def set_wonton(self, token, item):
+        url = 'https://wonton.food/api/v1/shop/use-item'
+        id = item.get('id')
+        payload = {'itemId': id}
+        headers = {**self.headers, 
+                   'Authorization': f'bearer {token}'
+                   }
+        try:
+            response = self.make_request('post', url, headers, json=payload)
+            if response is not None:
+                if response.status_code == 200:
+                    name = item.get('name','')
+                    farmingPower = item.get('farmingPower','0')
+                    self.print_(f"Set Farming Done | Name : {name}, Farming Power : {farmingPower}")
+
+        except Exception as error:
+            self.print_(f'Get user error : {error}')
+            return None
+        
 
 
