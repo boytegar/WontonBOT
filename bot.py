@@ -65,6 +65,7 @@ def print_delay(delay):
 def main():
     selector_task = input("auto clear task y/n : ").strip().lower()
     selector_game = input("auto play game y/n : ").strip().lower()
+    selector_fusion = input("auto fusion wonton y/n : ").strip().lower()
     selector_max = input("basic score wonton *80-100 = y, basic score wonton *50-80 = n : ").strip().lower()
     while True:
         delete_all()
@@ -84,10 +85,7 @@ def main():
             print_('generate token...')
             data_login = wonton.login(query)
             ticketCount = data_login.get('ticketCount')
-            token = gets(id)
-            if token is None:
-                token = data_login.get('tokens').get('accessToken')
-                save(id, token)
+            token = data_login.get('tokens').get('accessToken')
             data_user = data_login.get('user',{})
             tokenBalance = data_user.get('tokenBalance','0')
             withdrawableBalance = data_user.get('withdrawableBalance','0')
@@ -99,9 +97,10 @@ def main():
                 ton += float(withdrawableBalance)
                 wonton.checkin(token)
             
-            hasClaimedOkx = data_user.get('hasClaimedOkx',False)
-            hasClaimedBinance = data_user.get('hasClaimedBinance',False)
-            hasClaimedHackerLeague = data_user.get('hasClaimedHackerLeague',False)
+            hasClaimedOkx = data_user.get('hasClaimedOkx',True)
+            hasClaimedBinance = data_user.get('hasClaimedBinance',True)
+            hasClaimedHackerLeague = data_user.get('hasClaimedHackerLeague',True)
+            hasClaimedBitMart = data_user.get('hasClaimedBitMart',True)
 
             # if hasClaimedOkx == False:
             #     wonton.clear_gift_task(token, "OKX_WALLET")
@@ -111,6 +110,9 @@ def main():
             
             if hasClaimedHackerLeague == False:
                 wonton.clear_gift_task(token, "HACKER_LEAGUE")
+                
+            if hasClaimedBitMart == False:
+                wonton.clear_gift_task(token, "BITMART_SIGN_UP")
 
             data_farming = wonton.check_farm_status(token)
             if data_farming is not None:
@@ -122,7 +124,7 @@ def main():
                     wonton.claim_farming(token)
                     wonton.start_farming(token)
 
-            data_list = wonton.get_list_wonton(token)
+            data_list = wonton.get_list_wonton(token, selector_fusion)
             if data_list is not None:
                 stats = data_list.get('data').get('stats')[2]
                 ton += float(data_list.get('ton'))
@@ -145,7 +147,6 @@ def main():
             print_('generate token...')
             data_login = wonton.login(query)
             token = data_login.get('tokens').get('accessToken')
-            save(id, token)
             
             if selector_task == 'y':
                 print_('Staring Task...')

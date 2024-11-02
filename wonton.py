@@ -28,7 +28,8 @@ class Wonton:
             'sec-fetch-dest': 'empty',
             'sec-fetch-mode': 'cors',
             'sec-fetch-site': 'cross-site',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+            'x-tag':"w?1&w5^973]03ex3;g>04r2>fg<y9m3p&^55fv/jz/~tfh<j5c>fpj668/n"
         }
 
     def print_(self, word):
@@ -111,7 +112,7 @@ class Wonton:
                 self.print_(f'Error check farm: {res.status_code}')
                 return None
         except Exception as error:
-            self.print_(f'Lỗi khi kiểm tra trạng thái farming: {error}')
+            self.print_(f'Error check farm: {error}')
             return None
 
     def claim_farming(self, token):
@@ -248,7 +249,7 @@ class Wonton:
 
     def login(self, data):
         url = 'https://wonton.food/api/v1/user/auth'
-        payload = {'initData': data, 'inviteCode': ''}
+        payload = {'initData': data, 'inviteCode': '', 'newUserPromoteCode': ''}
 
         try:
             response = self.make_request('post', url, self.headers, json=payload)
@@ -291,7 +292,7 @@ class Wonton:
             self.print_(f'Get user error : {error}')
             return None
     
-    def get_list_wonton(self, token):
+    def get_list_wonton(self, token, selector_fusion):
         url = 'https://wonton.food/api/v1/shop/list'
         headers = {**self.headers, 'Authorization': f'bearer {token}'}
         try:
@@ -324,6 +325,8 @@ class Wonton:
                         self.set_wonton(token, data)
                         data_item = data
                         break
+                if selector_fusion == 'y':
+                    self.get_list_fusion(token=token, list=shopItems)
                 return {'ton': ton, 'wton':wton, 'data':data_item}
 
         except Exception as error:
@@ -348,6 +351,53 @@ class Wonton:
         except Exception as error:
             self.print_(f'Get user error : {error}')
             return None
-        
+    
+    def get_list_fusion(self, token, list):
+        url = 'https://wonton.food/api/v1/shop/fusion-items/list'
+        headers = {**self.headers, 'Authorization': f'bearer {token}'}
+
+        try:
+            response = self.make_request('get',url, headers)
+            if response is not None:
+                jsons = response.json()
+                items = jsons.get('items',[])
+                fusion = True
+                for index, item in enumerate(items):
+                    requireItems = item.get('requireItems',[])
+                    requireItemsAmount = item.get('requireItemsAmount',[])
+                    for ids in requireItems:
+                        data = next((item for item in list if item["internalId"] == ids), None)
+                        inventory = data.get('inventory',0)
+                        if inventory < requireItemsAmount[index]:
+                            fusion = False
+                            break
+
+                    if fusion:
+                        id = item.get('id')
+                        payload = {"fusionId":id}
+                        self.fusion_wonton(token=token, payload=payload)
+                        break
+
+        except Exception as error:
+            self.print_(f'Get user error : {error}')
+            return None
+    
+    def fusion_wonton(self, token, payload):
+        url = 'https://wonton.food/api/v1/shop/fuse-item'
+        headers = {**self.headers, 
+                   'Authorization': f'bearer {token}'
+                   }
+        try:
+            response = self.make_request('post', url, headers, json=payload)
+            if response is not None:
+                if response.status_code == 200:
+                    
+                    self.print_(f"Fusion wonton done")
+
+        except Exception as error:
+            self.print_(f'Get user error : {error}')
+            return None
+
+
 
 
