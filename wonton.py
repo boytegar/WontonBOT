@@ -365,10 +365,10 @@ class Wonton:
                 for index, item in enumerate(items):
                     requireItems = item.get('requireItems',[])
                     requireItemsAmount = item.get('requireItemsAmount',[])
-                    for ids in requireItems:
+                    for idx, ids in enumerate(requireItems):
                         data = next((item for item in list if item["internalId"] == ids), None)
                         inventory = data.get('inventory',0)
-                        if inventory < requireItemsAmount[index]:
+                        if inventory < requireItemsAmount[idx]:
                             fusion = False
                             break
 
@@ -379,7 +379,7 @@ class Wonton:
                         break
 
         except Exception as error:
-            self.print_(f'Get user error : {error}')
+            self.print_(f'fusion error : {error}')
             return None
     
     def fusion_wonton(self, token, payload):
@@ -395,9 +395,49 @@ class Wonton:
                     self.print_(f"Fusion wonton done")
 
         except Exception as error:
-            self.print_(f'Get user error : {error}')
+            self.print_(f'fusion wonton error : {error}')
             return None
+    
+    def get_badge(self, token):
+        url = 'https://wonton.food/api/v1/badge/list'
+        headers = {**self.headers, 
+                   'Authorization': f'bearer {token}'
+                   }
+        try:
+            response = self.make_request('get', url, headers)
+            if response is not None:
+                jsons = response.json()
+                list_badge = jsons.get('badges')
+                datas = list(list_badge.values())
+                for index, data in enumerate(datas):
+                    type = data.get('type')
+                    level = data.get('level')
+                    target = data.get('target','0')
+                    name = data.get('name','')
+                    progress = data.get('progress',0)
+                    self.print_(f"Badge : {name} | Level : {level}")
+                    if int(progress) >= int(target):
+                        self.print_('Upgraded Badge')
+                        payload = {"type":type}
+                        self.claim_badge(token, payload)
+                    else:
+                        self.print_(f"Point Upgrade not Enough")
 
+        except Exception as error:
+            self.print_(f'get badge error : {error}')
+            return None
+    
+    def claim_badge(self, token, payload):
+        url = 'https://wonton.food/api/v1/badge/claim'
+        headers = {**self.headers, 
+                   'Authorization': f'bearer {token}'
+                   }
+        try:
+            response = self.make_request('post', url, headers, json=payload)
+            if response is not None:
+                if response.status_code == 200:
+                    self.print_(f"Upgrade badge done")
 
-
-
+        except Exception as error:
+            self.print_(f'fusion wonton error : {error}')
+            return None

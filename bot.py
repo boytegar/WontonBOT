@@ -66,7 +66,9 @@ def main():
     selector_task = input("auto clear task y/n : ").strip().lower()
     selector_game = input("auto play game y/n : ").strip().lower()
     selector_fusion = input("auto fusion wonton y/n : ").strip().lower()
-    selector_max = input("basic score wonton *80-100 = y, basic score wonton *50-80 = n : ").strip().lower()
+    selector_badge = input("auto upgrade badge y/n : ").strip().lower()
+    if selector_game == 'y':
+        selector_max = input("basic score wonton *80-100 = y, basic score wonton *50-80 = n : ").strip().lower()
     while True:
         delete_all()
         start_time = time.time()
@@ -132,6 +134,19 @@ def main():
 
             tickets.append({'ticket': ticketCount, 'stats':int(stats)})
         
+        if selector_badge == 'y':
+            for index, query in enumerate(queries):
+                mid_time = time.time()
+                remaining_time = delay - (mid_time-start_time)
+                if remaining_time <= 0:
+                    break
+                users = parse_query(query).get('user')
+                id = users.get('id')
+                print_(f"SxG======= Account {index+1}/{sum} [ {users.get('username')} ] ========SxG")
+                print_('generate token...')
+                data_login = wonton.login(query)
+                token = data_login.get('tokens').get('accessToken')
+                wonton.get_badge(token)
 
         for index, query in enumerate(queries):
             mid_time = time.time()
