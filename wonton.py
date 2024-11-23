@@ -414,8 +414,13 @@ class Wonton:
                     level = data.get('level')
                     target = data.get('target','0')
                     name = data.get('name','')
-                    progress = data.get('progress',0)
+                    progress = data.get('progress',None)
                     self.print_(f"Badge : {name} | Level : {level}")
+
+                    if progress is None:
+                        self.print_(f"Point Upgrade not Enough")
+                        continue
+
                     if int(progress) >= int(target):
                         self.print_('Upgraded Badge')
                         payload = {"type":type}
@@ -437,6 +442,65 @@ class Wonton:
             if response is not None:
                 if response.status_code == 200:
                     self.print_(f"Upgrade badge done")
+
+        except Exception as error:
+            self.print_(f'fusion wonton error : {error}')
+            return None
+    
+    def get_blindbox(self, token, balance):
+        url = 'https://wonton.food/api/v1/shop/user-blindbox'
+        headers = {**self.headers, 
+                   'Authorization': f'bearer {token}'
+                   }
+        try:
+            response = self.make_request('get', url, headers)
+            if response is not None:
+                jsons = response.json()
+                blindbox = jsons.get('blindbox')
+                basicBox = blindbox.get('basicBox')
+                basicBoxQuota = jsons.get('basicBoxQuota')
+                available = basicBoxQuota.get('available')
+                if available > 0:
+                    payload = {"purchaseAmount":6}
+                    if int(balance) >= 20000:
+                        self.purcase_basic_box(token, payload)
+                    else:
+                        self.print_('WTON Not enough balance')
+
+        except Exception as error:
+            self.print_(f'get blindbox error : {error}')
+            return None
+    
+    def purcase_basic_box(self, token, payload):
+        url = 'https://wonton.food/api/v1/shop/purchase-basic-box'
+        headers = {**self.headers, 
+                   'Authorization': f'bearer {token}'
+                   }
+        try:
+            response = self.make_request('post', url, headers, json=payload)
+            if response is not None:
+                if response.status_code == 200:
+                    self.print_(f"Purcase Basic Box Done")
+                    for i in range (2):
+                        payload = {"drawAmount":3}
+                        self.draw_basic_box(token, payload)
+
+        except Exception as error:
+            self.print_(f'fusion wonton error : {error}')
+            return None
+    
+    def draw_basic_box(self, token, payload):
+        url = 'https://wonton.food/api/v1/shop/draw-basic-box'
+        headers = {**self.headers, 
+                   'Authorization': f'bearer {token}'
+                   }
+        try:
+            response = self.make_request('post', url, headers, json=payload)
+            if response is not None:
+                jsons = response.json()
+                results = jsons.get('results',[])
+                for index, item in enumerate(results, start=1):
+                    self.print_(f"Name: {item.get('name')} | Farming Power : {item.get('farmingPower')} | Token Value : {item.get('tokenValue')} WTON | {item.get('value')} TON")
 
         except Exception as error:
             self.print_(f'fusion wonton error : {error}')
