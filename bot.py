@@ -68,6 +68,7 @@ def main():
     selector_fusion = input("auto fusion wonton y/n : ").strip().lower()
     selector_badge = input("auto upgrade badge y/n : ").strip().lower()
     selector_basic_box = input("auto buy basic box y/n : ").strip().lower()
+    selector_auto_sell = input("auto sell wonton & bowl y/n : ").strip().lower()
     if selector_game == 'y':
         selector_max = input("basic score wonton *80-100 = y, basic score wonton *50-80 = n : ").strip().lower()
     while True:
@@ -122,7 +123,7 @@ def main():
                 if data_farming == 'start':
                     wonton.start_farming(token)
                 elif data_farming == 'wait':
-                    print()
+                    empty = 2
                 else:
                     wonton.claim_farming(token)
                     wonton.start_farming(token)
@@ -130,7 +131,7 @@ def main():
             if selector_basic_box == 'y':
                 wonton.get_blindbox(token, tokenBalance)
                 
-            data_list = wonton.get_list_wonton(token, selector_fusion)
+            data_list = wonton.get_list_wonton(token, selector_fusion, selector_auto_sell)
             if data_list is not None:
                 stats = data_list.get('data').get('stats')[2]
                 ton += float(data_list.get('ton'))

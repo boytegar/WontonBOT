@@ -249,7 +249,7 @@ class Wonton:
 
     def login(self, data):
         url = 'https://wonton.food/api/v1/user/auth'
-        payload = {'initData': data, 'inviteCode': '', 'newUserPromoteCode': ''}
+        payload = {'initData': data, 'inviteCode': 'YR397O44', 'newUserPromoteCode': ''}
 
         try:
             response = self.make_request('post', url, self.headers, json=payload)
@@ -292,7 +292,7 @@ class Wonton:
             self.print_(f'Get user error : {error}')
             return None
     
-    def get_list_wonton(self, token, selector_fusion):
+    def get_list_wonton(self, token, selector_fusion, selector_auto_sell):
         url = 'https://wonton.food/api/v1/shop/list'
         headers = {**self.headers, 'Authorization': f'bearer {token}'}
         try:
@@ -325,6 +325,17 @@ class Wonton:
                         self.set_wonton(token, data)
                         data_item = data
                         break
+                if selector_auto_sell == 'y':
+                    self.print_('Selling Wonton And Bowl')
+                    for data in sorted_data:
+                        bowlDisplay = data.get('bowlDisplay',True)
+                        inUse = data.get('inUse',True)
+                        if not bowlDisplay and not inUse:
+                            value = data.get('value')
+                            if value != "0":
+                                self.sell_item(token, data)
+
+
                 if selector_fusion == 'y':
                     self.get_list_fusion(token=token, list=shopItems)
                 return {'ton': ton, 'wton':wton, 'data':data_item}
@@ -501,6 +512,25 @@ class Wonton:
                 results = jsons.get('results',[])
                 for index, item in enumerate(results, start=1):
                     self.print_(f"Name: {item.get('name')} | Farming Power : {item.get('farmingPower')} | Token Value : {item.get('tokenValue')} WTON | {item.get('value')} TON")
+
+        except Exception as error:
+            self.print_(f'fusion wonton error : {error}')
+            return None
+    
+    def sell_item(self, token, item):
+        url = 'https://wonton.food/api/v1/shop/sell-item'
+        headers = {**self.headers, 
+                   'Authorization': f'bearer {token}'
+                   }
+        id = item.get('id')
+        inventory = item.get('inventory')
+        payload = {'itemId': id, 'amount': inventory}
+        try:
+            response = self.make_request('post', url, headers, json=payload)
+            if response is not None:
+                jsons = response.json()
+                if response.status_code == 200:
+                    self.print_(f"Selling Done -- Name: {item.get('name')} | Farming Power : {item.get('farmingPower')} | Token Value : {item.get('tokenValue')} WTON | {item.get('value')} TON")
 
         except Exception as error:
             self.print_(f'fusion wonton error : {error}')
